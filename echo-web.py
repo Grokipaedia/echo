@@ -1,13 +1,16 @@
-# echo-web.py - Beautiful web interface
 import streamlit as st
 import json
-from datetime import datetime
 import random
+from datetime import datetime
 
 st.set_page_config(page_title="Echo • Talk to Your Future Self", page_icon="🌌", layout="centered")
 
 st.title("🌌 Echo")
 st.markdown("**Talk to your future self.** Today.")
+
+mode = st.radio("Choose your future self mode:", 
+                ["General Conversation", "Legacy & Family", "Therapy & Reflection", "Leadership & Strategy"],
+                horizontal=True)
 
 years_ahead = st.slider("Talk to yourself in how many years?", 5, 30, 10, 5)
 
@@ -18,7 +21,7 @@ if "memory" not in st.session_state:
     except:
         st.session_state.memory = []
 
-for msg in st.session_state.memory[-15:]:
+for msg in st.session_state.memory[-12:]:
     if msg["role"] == "user":
         st.chat_message("user").write(msg["text"])
     else:
@@ -27,19 +30,20 @@ for msg in st.session_state.memory[-15:]:
 user_input = st.chat_input("Ask your future self anything...")
 
 if user_input:
-    st.session_state.memory.append({"role": "user", "text": user_input, "timestamp": datetime.now().isoformat()})
+    st.session_state.memory.append({"role": "user", "text": user_input})
     
-    responses = [
-        f"From {2026 + years_ahead}... I still remember the exact day you asked me this.",
-        f"The version of you in {2026 + years_ahead} wishes you would stop overthinking and just do it.",
-        f"You already know the answer. You're just scared. I was too.",
-        f"This decision is going to define the next decade. Choose the one that makes older me proud.",
-    ]
-    response = random.choice(responses)
+    if mode == "Legacy & Family":
+        reply = random.choice(["Your children will ask about this moment one day...", "I left this message for them..."])
+    elif mode == "Therapy & Reflection":
+        reply = random.choice(["I still carry that pain sometimes...", "This is the kind of thing we used to avoid..."])
+    elif mode == "Leadership & Strategy":
+        reply = random.choice(["This decision will define the next decade...", "Future teams will judge you by how you handled this..."])
+    else:
+        reply = random.choice(["I remember when you asked me this...", "You're overthinking it again..."])
     
-    st.session_state.memory.append({"role": "future", "text": response, "years_ahead": years_ahead, "timestamp": datetime.now().isoformat()})
+    st.session_state.memory.append({"role": "future", "text": reply, "years_ahead": years_ahead})
     
     with open("echo_memory.json", "w", encoding="utf-8") as f:
         json.dump(st.session_state.memory, f, indent=2)
     
-    st.chat_message("assistant").write(f"**Future You ({2026 + years_ahead}):** {response}")
+    st.chat_message("assistant").write(f"**Future You ({2026 + years_ahead}):** {reply}")
