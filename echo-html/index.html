@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo • Talk to Your Future Self</title>
+  <style>
+    :root { --primary: #00ff9d; }
+    body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #eee; margin:0; padding:0; }
+    .container { max-width: 920px; margin: 40px auto; padding: 20px; }
+    h1 { text-align: center; font-size: 3.2rem; margin-bottom: 8px; }
+    .tagline { text-align: center; color: var(--primary); font-size: 1.5rem; }
+    .controls { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
+    .mode-btn, select, label { padding: 10px 20px; border-radius: 9999px; background: #222; color: white; border: 2px solid transparent; cursor: pointer; }
+    .mode-btn.active { background: var(--primary); color: black; }
+    .chat { background: #111; border-radius: 20px; padding: 30px; height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .message { max-width: 75%; padding: 18px 22px; border-radius: 18px; position: relative; }
+    .user { align-self: flex-end; background: #222; border-bottom-right-radius: 4px; }
+    .future { align-self: flex-start; background: #1a1a1a; border: 1px solid var(--primary); border-bottom-left-radius: 4px; }
+    .timestamp { font-size: 0.75rem; color: #666; margin-top: 4px; text-align: right; }
+    .input-area { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
+    input { flex: 1; background: #222; border: none; padding: 18px 24px; border-radius: 9999px; font-size: 1.1rem; color: white; }
+    button { background: var(--primary); color: black; border: none; padding: 18px 32px; border-radius: 9999px; font-weight: bold; cursor: pointer; }
+    .mic-btn { background: #333; color: white; padding: 12px 18px; border-radius: 50%; font-size: 1.4rem; cursor: pointer; }
+    .profile-btn { position: absolute; top: 20px; right: 20px; background: #222; color: white; border: none; padding: 8px 16px; border-radius: 9999px; cursor: pointer; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="profile-btn" onclick="editProfile()">✏️ Edit Profile</button>
+    
+    <h1>Echo</h1>
+    <p class="tagline">Talk to your future self.<br>Today.</p>
+
+    <div class="controls">
+      <div id="modes"></div>
+      <select id="voice-select"></select>
+      <label><input type="checkbox" id="auto-speak" checked> Auto-speak</label>
+      <label><input type="checkbox" id="challenge-mode"> Challenge Mode</label>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="input-area">
+      <button class="mic-btn" id="mic-btn">🎤</button>
+      <input id="input" type="text" placeholder="Ask your future self anything..." onkeydown="if(event.key==='Enter') sendMessage();">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div style="text-align:center; margin-top:50px; font-size:0.95rem; color:#777;">
+      <strong>Pro tip:</strong> The more personal information you share (journals, decisions, goals, regrets), 
+      the more accurate, honest, and deeply personal your future self becomes.
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:#111; padding:30px; border-radius:16px; width:90%; max-width:500px;">
+      <h2>Your Profile</h2>
+      <input id="profile-name" placeholder="Your name" style="width:100%; padding:12px; margin:10px 0; background:#222; border:none; color:white; border-radius:8px;" value="You"><br>
+      <input id="profile-age" type="number" placeholder="Current age" style="width:100%; padding:12px; margin:10px 0; background:#222; border:none; color:white; border-radius:8px;" value="35"><br>
+      <textarea id="profile-bio" placeholder="Key facts, goals, regrets, or anything important about your life..." style="width:100%; height:180px; padding:12px; background:#222; border:none; color:white; border-radius:8px; resize:vertical;"></textarea>
+      <div style="margin-top:20px; text-align:right;">
+        <button onclick="saveProfile()" style="background:#00ff9d; color:black; padding:12px 24px; border:none; border-radius:9999px;">Save Profile</button>
+        <button onclick="closeProfileModal()" style="background:#333; color:white; padding:12px 24px; border:none; border-radius:9999px; margin-left:10px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = "general";
+    const modes = { general: "General", legacy: "Legacy", therapy: "Therapy", leadership: "Leadership" };
+    let profile = { name: "You", age: 35, bio: "" };
+    let challengeMode = false;
+
+    try {
+      const saved = localStorage.getItem("echo_profile");
+      if (saved) profile = JSON.parse(saved);
+    } catch(e) {}
+
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const voiceSelect = document.getElementById('voice-select');
+    const autoSpeak = document.getElementById('auto-speak');
+    let voices = [];
+
+    function loadVoices() {
+      voices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = '';
+      voices.forEach((voice, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(opt);
+      });
+    }
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function createModeButtons() {
+      const container = document.getElementById('modes');
+      Object.keys(modes).forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = `mode-btn ${key === currentMode ? 'active' : ''}`;
+        btn.textContent = modes[key];
+        btn.onclick = () => {
+          currentMode = key;
+          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function speak(text) {
+      if ('speechSynthesis' in window && autoSpeak.checked) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const selected = voices[voiceSelect.value];
+        if (selected) utterance.voice = selected;
+        utterance.pitch = 0.95;
+        utterance.rate = 0.98;
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    function formatTimestamp() {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function addMessage(text, isUser) {
+      const div = document.createElement('div');
+      div.className = `message ${isUser ? 'user' : 'future'}`;
+      div.innerHTML = `
+        ${text}
+        <div class="timestamp">${formatTimestamp()}</div>
+        ${!isUser ? `<button onclick="speak('${text.replace(/'/g, "\\'")}')" style="background:none;border:none;cursor:pointer;margin-left:8px;">🔊</button>` : ''}
+      `;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function getResponse(text) {
+      const lower = text.toLowerCase();
+      let base = ["I remember when you asked me this...", "You're overthinking it again..."];
+      
+      if (currentMode === "legacy") base = [`Your ${profile.name ? profile.name + "'s" : "children"} will ask about this one day...`, "I left this message for them..."];
+      else if (currentMode === "therapy") base = ["I still carry that pain sometimes...", "This is the kind of thing we used to avoid..."];
+      else if (currentMode === "leadership") base = ["This decision will define the next decade...", "Future teams will judge you by this moment..."];
+
+      if (challengeMode && Math.random() > 0.6) {
+        base = ["I know that's what you want to hear, but is it what you need to hear?", "You're avoiding the real issue here..."];
+      }
+
+      return base[Math.floor(Math.random() * base.length)];
+    }
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(text, true);
+      input.value = '';
+
+      setTimeout(() => {
+        const reply = getResponse(text);
+        addMessage(reply, false);
+        speak(reply);
+      }, 700);
+    }
+
+    // Microphone support
+    const micBtn = document.getElementById('mic-btn');
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.onresult = e => {
+        input.value = e.results[0][0].transcript;
+        sendMessage();
+      };
+      micBtn.onclick = () => recognition.start();
+    } else {
+      micBtn.style.display = 'none';
+    }
+
+    // Profile functions
+    function editProfile() {
+      document.getElementById('profile-name').value = profile.name || "You";
+      document.getElementById('profile-age').value = profile.age || 35;
+      document.getElementById('profile-bio').value = profile.bio || "";
+      document.getElementById('profile-modal').style.display = 'flex';
+    }
+
+    function saveProfile() {
+      profile.name = document.getElementById('profile-name').value || "You";
+      profile.age = parseInt(document.getElementById('profile-age').value) || 35;
+      profile.bio = document.getElementById('profile-bio').value || "";
+      localStorage.setItem("echo_profile", JSON.stringify(profile));
+      closeProfileModal();
+      addMessage(`Profile updated. Future You now knows you better.`, false);
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profile-modal').style.display = 'none';
+    }
+
+    // Init
+    createModeButtons();
+    setTimeout(() => {
+      const welcome = "I've been waiting for you to show up...";
+      addMessage(welcome, false);
+      speak(welcome);
+    }, 800);
+
+    // Challenge Mode toggle listener
+    document.getElementById('challenge-mode').addEventListener('change', function() {
+      challengeMode = this.checked;
+    });
+  </script>
+</body>
+</html>
