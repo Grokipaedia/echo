@@ -9,22 +9,7 @@ Echo creates a private, evolving simulation of your future self. It learns from 
 This is not a generic chatbot.  
 This is **you**, years from now, talking back.
 
-### Why Echo Matters
-Most AI helps you be more productive today.  
-Echo helps you become the person you actually want to be tomorrow.
-
-It surfaces the hard truths you already know but keep avoiding.  
-It reminds you of the promises you made to yourself.  
-It shows you the long-term cost of the shortcuts you're tempted to take.
-
-### How It Works
-- Completely private — everything runs on your device
-- Your data is never uploaded or shared
-- The future self evolves daily as your real life updates
-- Conversations are saved and remembered across sessions
-- You can talk to different time horizons (5 years ahead, 10 years, 20 years...)
-
-### Quick Start
+### Quick Start (Local)
 ```bash
 git clone https://github.com/Grokipaedia/echo.git
 cd echo
