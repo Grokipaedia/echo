@@ -1,4 +1,4 @@
-# echo.py - Next-level "Talk to your Future Self"
+# echo.py - Improved memory + personality
 import json
 import random
 from datetime import datetime
@@ -8,57 +8,57 @@ from rich.panel import Panel
 console = Console()
 
 class Echo:
-    def __init__(self, user_name="You"):
-        self.user_name = user_name
-        self.memory = []  # persistent conversation history
+    def __init__(self):
+        self.memory_file = "echo_memory.json"
+        self.memory = self.load_memory()
         self.age_now = 2026
-        self.load_memory()
-        console.print(Panel(f"[bold cyan]Echo is awake... Your future self is here.[/bold cyan]", title="🌌"))
+        console.print(Panel("[bold cyan]Echo is awake... Your future self has been waiting.[/bold cyan]", title="🌌"))
 
     def load_memory(self):
         try:
-            with open("echo_memory.json", "r") as f:
-                self.memory = json.load(f)
+            with open(self.memory_file, "r", encoding="utf-8") as f:
+                return json.load(f)
         except:
-            self.memory = []
+            return []
 
     def save_memory(self):
-        with open("echo_memory.json", "w") as f:
-            json.dump(self.memory, f)
+        with open(self.memory_file, "w", encoding="utf-8") as f:
+            json.dump(self.memory, f, indent=2)
 
-    def respond(self, user_input: str, years_ahead: int = 10) -> str:
-        self.memory.append({"role": "user", "text": user_input})
-        
+    def respond(self, user_input: str, years_ahead: int = 10):
+        self.memory.append({"role": "user", "text": user_input, "timestamp": datetime.now().isoformat()})
+
         future_age = self.age_now + years_ahead
-        
-        responses = [
-            f"From {future_age}... I still remember the exact day you asked me this.",
-            f"The version of you in {future_age} wishes you would stop overthinking and just do it.",
-            f"You already know the answer. You're just scared. I was too... and I still regret waiting.",
-            f"This decision is going to shape the next decade. Choose the one that makes older me proud.",
-            f"I carried that regret for years. Don't make the same mistake I did."
-        ]
 
-        # Personalize based on past conversation
-        if any(word in user_input.lower() for word in ["fear", "scared", "anxious"]):
-            response = f"I still feel that fear sometimes. But I promise you — the regret of not acting hurts more."
-        elif any(word in user_input.lower() for word in ["job", "quit", "career"]):
-            response = f"You spent years in that job you hated. I still carry that weight. Don't do what I did."
+        # Make responses feel more personal and consistent
+        if any(word in user_input.lower() for word in ["fear", "scared", "anxious", "worry"]):
+            response = f"From {future_age}... I still feel that same fear sometimes. But I promise you — the regret of not acting hurts a lot more."
+        elif any(word in user_input.lower() for word in ["job", "quit", "career", "work"]):
+            response = f"You spent years in that job you hated. I still carry that weight. Don't make the same mistake I did."
+        elif any(word in user_input.lower() for word in ["relationship", "love", "partner", "friend"]):
+            response = f"The people you didn't fight for? They're happy now. You still think about them."
         else:
+            responses = [
+                f"From {future_age}... I remember the exact day you asked me this.",
+                f"The version of you in {future_age} wishes you would stop overthinking and just do it.",
+                f"You already know the answer. You're just hoping I'll give you permission.",
+                f"This decision is going to define the next decade. Choose the one that makes older me proud.",
+            ]
             response = random.choice(responses)
 
-        self.memory.append({"role": "future", "text": response, "years_ahead": years_ahead})
+        self.memory.append({"role": "future", "text": response, "years_ahead": years_ahead, "timestamp": datetime.now().isoformat()})
         self.save_memory()
         return response
 
 if __name__ == "__main__":
     console.print("[bold green]Welcome back. Your future self has been waiting.[/bold green]\n")
     echo = Echo()
-    
+
     while True:
         user_input = input("\nYou: ")
         if user_input.lower() in ["quit", "exit", "bye"]:
             console.print("[yellow]Future You: Take care of yourself. I'll still be here when you need me.[/yellow]")
             break
-        response = echo.respond(user_input)
-        console.print(f"[bold cyan]Future You (10+ years ahead):[/bold cyan] {response}")
+        years = int(input("How many years ahead? (5/10/20) [default 10]: ") or 10)
+        response = echo.respond(user_input, years)
+        console.print(f"[bold cyan]Future You ({echo.age_now + years}):[/bold cyan] {response}\n")
