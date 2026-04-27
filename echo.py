@@ -1,4 +1,4 @@
-# echo.py - Improved memory + personality
+# echo.py - Ultimate version
 import json
 import random
 from datetime import datetime
@@ -30,18 +30,17 @@ class Echo:
 
         future_age = self.age_now + years_ahead
 
-        # Make responses feel more personal and consistent
         if any(word in user_input.lower() for word in ["fear", "scared", "anxious", "worry"]):
-            response = f"From {future_age}... I still feel that same fear sometimes. But I promise you — the regret of not acting hurts a lot more."
-        elif any(word in user_input.lower() for word in ["job", "quit", "career", "work"]):
+            response = f"From {future_age}... I still feel that same fear sometimes. But the regret of not acting hurts so much more."
+        elif any(word in user_input.lower() for word in ["job", "quit", "career"]):
             response = f"You spent years in that job you hated. I still carry that weight. Don't make the same mistake I did."
-        elif any(word in user_input.lower() for word in ["relationship", "love", "partner", "friend"]):
+        elif any(word in user_input.lower() for word in ["relationship", "love", "partner"]):
             response = f"The people you didn't fight for? They're happy now. You still think about them."
         else:
             responses = [
                 f"From {future_age}... I remember the exact day you asked me this.",
                 f"The version of you in {future_age} wishes you would stop overthinking and just do it.",
-                f"You already know the answer. You're just hoping I'll give you permission.",
+                f"You already know the answer. You're just scared. I was too.",
                 f"This decision is going to define the next decade. Choose the one that makes older me proud.",
             ]
             response = random.choice(responses)
